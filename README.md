@@ -1,0 +1,1 @@
+# symfony_customer_maker_create_structure_bundle_for_dev
