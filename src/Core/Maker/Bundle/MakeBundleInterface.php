@@ -16,4 +16,5 @@ interface MakeBundleInterface
     public function generateContentBundle();
     public function generateContentEntity();
     public function generateContentController();
+    public function generateContentExtension();
 }
