@@ -1,0 +1,12 @@
+{% extends 'base.html.twig' %}
+
+
+{% block body %}
+    {% for message in app.flashes('store.success') %}
+        <span>{{ message }}</span>
+    {% endfor %}
+    <h2>Form create store</h2>
+    {{ form_start(form) }}
+         {{ form_rest(form) }}
+    {{ form_end(form) }}
+{% endblock %}

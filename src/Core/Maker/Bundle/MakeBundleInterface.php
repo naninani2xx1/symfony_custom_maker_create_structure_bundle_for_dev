@@ -11,6 +11,7 @@ interface MakeBundleInterface
      * @return void
      */
     public function registerBundle(?string $path, string $nameBundle): void;
+    public function registerBundleInDoctrine(string $nameBundle): void;
 
     public function generateContentRepository();
     public function generateContentBundle();

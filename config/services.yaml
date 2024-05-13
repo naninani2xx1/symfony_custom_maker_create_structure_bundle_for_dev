@@ -19,6 +19,14 @@ services:
             - '../src/DependencyInjection/'
             - '../src/Entity/'
             - '../src/Kernel.php'
+    App\Core\Services\UploadFileServices:
+        arguments:
+            $targetDirectory: '%upload_directory%'
 
+    App\Backend\AMZ\StoreBundle\Repository\StoreRepository :
+        autowire: true
+#    App\Backend\AMZ\StoreBundle\Repository\StoreRepository : '@repository.store'
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+imports:
+    - { resource: 'app.config.yaml' }

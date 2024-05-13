@@ -88,7 +88,8 @@ class BundleCommand extends AbstractMakeBundle
 //            /**
 //             * Automatic register bundle
 //             */
-//            $this->registerBundle($path, $nameBundle. AbstractMakeBundle::SUFFIX);
+            $this->registerBundle($path, $nameBundle. AbstractMakeBundle::SUFFIX);
+            $this->registerBundleInDoctrine($nameBundle. AbstractMakeBundle::SUFFIX);
         } catch (IOExceptionInterface $exception) {
             echo "An error occurred while creating your directory at ".$exception->getPath();
             return Command::FAILURE;

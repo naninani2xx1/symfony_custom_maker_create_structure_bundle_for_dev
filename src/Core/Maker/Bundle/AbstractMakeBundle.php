@@ -5,6 +5,8 @@ namespace App\Core\Maker\Bundle;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpKernel\KernelInterface;
+use Symfony\Component\Yaml\Yaml;
+
 
 abstract class AbstractMakeBundle extends Command implements MakeBundleInterface
 {
@@ -36,7 +38,7 @@ abstract class AbstractMakeBundle extends Command implements MakeBundleInterface
     public function registerBundle(?string $path, string $nameBundle): void
     {
         $file = $this->getProjectDir() . '/config/bundles.php';
-        $path = $path ? $path . '\\' : '';
+        $path = $path ?: '';
         $newNamespace = 'App\\' . $path . $nameBundle . '\\' . $nameBundle . '::class => ["all" => true]';
         $currentContent = file_get_contents($file);
 
@@ -48,6 +50,22 @@ abstract class AbstractMakeBundle extends Command implements MakeBundleInterface
 
         // write content new
         $this->filesystem->dumpFile($file, $newContent);
+    }
+
+    public function registerBundleInDoctrine(string $nameBundle): void
+    {
+        $file = $this->getProjectDir() . '/config/packages/doctrine.yaml';
+        $arrayDoctrine = Yaml::parseFile($file);
+        $arrayDoctrine['doctrine']['orm']['mappings'][$nameBundle] = [
+            'type' => 'attribute',
+            'is_bundle' => true,
+            'dir' => 'Entity',
+            'prefix' => $this->getNameSpaceEntity(),
+            'alias' => $nameBundle,
+        ];
+        $yaml = Yaml::dump($arrayDoctrine,6,4);
+
+        $this->filesystem->dumpFile($file, $yaml);
     }
 
     public function generateContentRepository(): string
@@ -92,20 +110,63 @@ namespace '.$this->getNameSpaceController().';
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
-class '.$nameBundle.'Controller'.' {
+class '.$nameBundle.'Controller'.' extends AbstractController {
 
 
 }
         ';
     }
 
-    public function generateContentExtension()
+    public function generateContentExtension(): string
     {
         $nameBundle = static::$nameBundle;
         $nameSpace = static::$nameSpace;
         if (empty($nameSpace) && empty($nameBundle)) {
             return '';
         }
+
+        return '<?php
+namespace ' . $this->getNameSpaceExtension(). ';
+
+use Twig\Extension\AbstractExtension;
+use Twig\TwigFunction;
+use Twig\TwigFilter;
+use ' . $this->getNameSpaceRepository() . '\\' . $nameBundle . 'Repository;
+
+class ' . $nameBundle . 'Extension extends AbstractExtension
+{
+     public function __construct(
+        private readonly '.$nameBundle.'Repository $repository,
+     )
+    {
+     
+    }
+    
+    public function getFunctions(): array
+    {
+        return array(
+            new TwigFunction(\'testFunction\',[$this,\'testFunction\']),
+        );
+    }
+    
+     public function getFilters(): array
+    {
+        return [
+            new TwigFilter(\'testFilter\',[$this,\'testFilter\']),
+        ];
+    }
+    
+    public function testFilter(): string
+    {
+        return \'testing filter\';
+    }
+    
+     public function testFunction(): string
+    {
+        return \'testing Function\';
+    }
+}
+';
     }
 
     public function generateContentBundle(): string
@@ -137,24 +198,24 @@ class ' . $nameBundle . self::SUFFIX . ' extends Bundle
             return '';
         }
 
-        $useRepo = $this->getNameSpaceRepository(). '\\' . $nameBundle . 'Repository' . '"';
+        $useRepo = $this->getNameSpaceRepository(). '\\' . $nameBundle . 'Repository';
         $tableName = '"' . $this->getPrefixNameTable() . '_' . strtolower($nameBundle) . '"';
         return '<?php
 namespace ' . $this->getNameSpaceEntity(). ';
 use Doctrine\DBAL\Types\Types;
+use '.$useRepo.';
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
-use Symfony\Component\HttpKernel\Bundle\Bundle;
-use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
-/**
- * @UniqueEntity()
-   * @ORM\Entity(repositoryClass='.$useRepo.')
-   * @ORM\Table(name='.$tableName.')
- */
+#[ORM\Entity(repositoryClass: '.$nameBundle . 'Repository::class)]
+#[ORM\Table(name: '.$tableName.')]
+#[ORM\HasLifecycleCallbacks()]
 class ' . $nameBundle . '
 {
-
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column]
+    private ?int $id = null;
 }
 ';
     }
@@ -171,6 +232,13 @@ class ' . $nameBundle . '
         $nameBundle = static::$nameBundle;
         $nameSpace = static::$nameSpace;
         return $nameSpace ? 'App\\' . $nameSpace . $nameBundle . self::SUFFIX . '\\Repository' : 'App\\' . $nameBundle . self::SUFFIX . '\\Repository';
+    }
+
+    private function getNameSpaceExtension(): string
+    {
+        $nameBundle = static::$nameBundle;
+        $nameSpace = static::$nameSpace;
+        return $nameSpace ? 'App\\' . $nameSpace . $nameBundle . self::SUFFIX . '\\Extension' : 'App\\' . $nameBundle . self::SUFFIX . '\\Extension';
     }
 
     private function getNameSpaceController(): string

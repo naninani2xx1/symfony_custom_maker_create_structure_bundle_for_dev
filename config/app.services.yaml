@@ -1,0 +1,4 @@
+
+    App\Core\Services\UploadFileServices:
+      arguments:
+        $targetDirectory: '%brochures_directory%'
